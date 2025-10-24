@@ -1,6 +1,5 @@
-console.log('[GoImport] test-precio.js cargó');
+console.log('[GoImport] precio_usdt_ars.js cargó');
 
-// 1. Pedimos la cotización a tu backend
 fetch('/api/rate')
   .then(res => {
     console.log('[GoImport] /api/rate status:', res.status);
@@ -9,18 +8,13 @@ fetch('/api/rate')
   .then(data => {
     console.log('[GoImport] /api/rate body:', data);
 
-    if (!data || !data.ok) {
-      throw new Error('La API devolvió ok = false');
-    }
+    if (!data || !data.ok) throw new Error('La API devolvió ok = false');
 
     const valorDolar = parseFloat(data.usdt_ars);
     console.log('[GoImport] valorDolar:', valorDolar);
 
-    if (isNaN(valorDolar)) {
-      throw new Error('valorDolar es NaN');
-    }
+    if (isNaN(valorDolar)) throw new Error('valorDolar es NaN');
 
-    // 2. Recorremos todos los productos
     document.querySelectorAll('.product').forEach(prod => {
       const usdtStr = prod.getAttribute('data-usdt');
       const usdt = parseFloat(usdtStr);
@@ -33,28 +27,20 @@ fetch('/api/rate')
         precioSpanInicial: precioSpan ? precioSpan.textContent : null
       });
 
-      if (isNaN(usdt) || !precioSpan) {
-        // no podemos calcular este producto
-        return;
-      }
+      if (isNaN(usdt) || !precioSpan) return;
 
-      // 3. Calculamos precio final
       const precioFinal = usdt * valorDolar * 1.03;
-
       const precioTexto = `$ ${precioFinal.toLocaleString('es-AR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       })}`;
 
-      // 4. Mostramos en el DOM
       precioSpan.textContent = precioTexto;
-
       console.log('[GoImport] Precio final seteado en DOM:', precioTexto);
     });
   })
   .catch(err => {
     console.error('[GoImport] ERROR:', err);
-    // fallback visual
     document.querySelectorAll('.precio-ars').forEach(span => {
       span.textContent = 'Error al cargar';
     });
