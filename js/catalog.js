@@ -1,4 +1,6 @@
-// Helper: lee un campo de especificaciones por etiqueta ("Marca", "Modelo", etc.)
+// Script unificado de catálogo: cotización ARS, WhatsApp, estados y ordenamiento
+
+// Helper: obtiene el texto de una especificación por etiqueta (ej: "Marca", "Modelo")
 function getSpec(producto, etiqueta) {
   const ps = producto.querySelectorAll('.specifications p');
   for (const p of ps) {
@@ -13,138 +15,158 @@ function getSpec(producto, etiqueta) {
   return '';
 }
 
-// Detectar nombre de página (para armar mejor el mensaje si querés custom más adelante)
+// Detectar página/categoría por nombre de archivo
 function getPageName() {
   try {
     const path = (window.location && window.location.pathname) || '';
     const file = path.split('/').pop() || '';
     return file.replace(/\.html?$/i, '').toLowerCase();
-  } catch (_) {
-    return '';
-  }
+  } catch (_) { return ''; }
 }
 
-// Arma el mensaje de WhatsApp con info del producto + precio ARS final
+// Construir mensaje personalizado por página/categoría
 function buildMensaje(producto, precioARS) {
-  const titulo = producto.querySelector('h2')?.textContent?.trim() || 'Producto';
-  const marca = getSpec(producto, 'Marca');
-  const modelo = getSpec(producto, 'Modelo');
-  const color = getSpec(producto, 'Color');
-  const talles = getSpec(producto, 'Talles');
+  const page = getPageName();
 
-  // Ejemplo de mensaje:
-  // "Hola! Estoy interesado en este producto que vi en su web:
-  // Pro Tork Coyote / Marca: Pro Tork / Modelo: Coyote / Color: Gris / Talles: S, M, L
-  // Precio aprox: $ 123.456,78 ARS
-  // ¿Está disponible?"
-  let lineas = [
-    'Hola! Estoy interesado en este producto que vi en su web:',
-    `${titulo}`,
-  ];
+  // Helper local para tomar varios campos en orden de preferencia
+  const pick = (labels) => labels.map(l => getSpec(producto, l)).filter(Boolean).join(' ');
 
-  if (marca) lineas.push(`Marca: ${marca}`);
-  if (modelo) lineas.push(`Modelo: ${modelo}`);
-  if (color) lineas.push(`Color: ${color}`);
-  if (talles) lineas.push(`Talles: ${talles}`);
+  // Templating por categoría
+  const helmetsFields = ['Marca', 'Modelo', 'Grafico', 'Talles'];
+  const phoneFields = ['Marca', 'Modelo', 'Capacidad', 'Memoria', 'Color'];
 
-  lineas.push(`Precio aprox: ${precioARS}`);
-  lineas.push('¿Está disponible?');
+  let base = '';
+  switch (page) {
+    case 'smartphones_samsung':
+    case 'smartphones_xiaomi':
+    case 'smartphones_motorola':
+    case 'iphonesellados':
+    case 'iphoneswap':
+      base = pick(phoneFields) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'macbook':
+      base = pick(['Marca','Modelo','Capacidad','Memoria','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'notebooks':
+      base = pick(['Marca','Modelo','Procesador','Memoria','Almacenamiento','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'ipads':
+    case 'tablets':
+      base = pick(['Marca','Modelo','Capacidad','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'smartv':
+      base = pick(['Marca','Modelo','Pantalla','Tamaño','Pulgadas','Resolución']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'applewatch':
+    case 'smartwatch_xiaomi':
+      base = pick(['Marca','Modelo','Tamaño','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'scooter_xiaomi':
+      base = pick(['Marca','Modelo','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'gopro':
+      base = `GoPro ${getSpec(producto,'Modelo') || (producto.querySelector('h2')?.textContent?.trim() || '')}`.trim();
+      break;
+    case 'insta360':
+      base = `Insta360 ${getSpec(producto,'Modelo') || (producto.querySelector('h2')?.textContent?.trim() || '')}`.trim();
+      break;
+    case 'dji':
+      base = `DJI ${getSpec(producto,'Modelo') || (producto.querySelector('h2')?.textContent?.trim() || '')}`.trim();
+      break;
+    case 'xbox':
+    case 'sonyplaystation':
+      base = producto.querySelector('h2')?.textContent?.trim() || pick(['Producto','Marca','Modelo']);
+      break;
+    case 'parlantesjbl':
+      base = pick(['Marca','Modelo','Color','Potencia']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'agv':
+    case 'shaft':
+    case 'hro':
+    case 'protork':
+      base = pick(helmetsFields) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    case 'aspiradora_xiaomi':
+      base = pick(['Marca','Modelo','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+      break;
+    default:
+      base = pick(['Marca','Modelo']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+  }
 
-  return lineas.join('\n');
+  return `Hola! Estoy interesado en este producto que vi en su web: ${base} ${precioARS}. ¿Está disponible?`;
 }
 
-// ================================
-// 1) Traer cotización USDT→ARS desde tu backend /api/rate
-// ================================
+// Cotización y armado de links de WhatsApp (con manejo de stock)
 fetch('/api/rate')
-  .then(res => res.json())
+  .then(response => response.json())
   .then(data => {
-    // data esperado:
-    // { ok: true, usdt_ars: 1571.9, fuente: "...", ... }
-
-    if (!data.ok) throw new Error('No se pudo obtener la cotización');
-    const valorDolar = parseFloat(data.usdt_ars); // ARS por 1 USDT
+    const valorDolar = parseFloat(data.trim());
     if (isNaN(valorDolar)) throw new Error('Valor de dólar inválido');
 
-    // ================================
-    // 2) Recorremos cada producto y calculamos precio final
-    // ================================
     document.querySelectorAll('.product').forEach(producto => {
-      const usdt = parseFloat(producto.dataset.usdt); // ej. data-usdt="38"
+      const usdt = parseFloat(producto.dataset.usdt);
       const precioSpan = producto.querySelector('.precio-ars');
-      const disponibilidadSpan = producto.querySelector('.disponibilidad');
-      const whatsappBtn = producto.querySelector('.whatsapp-button');
 
+      let precioFinal = 0;
       let precioTexto = 'Error al cargar';
 
       if (!isNaN(usdt) && precioSpan) {
-        // tu fórmula: precioFinal = usdt * cotización * 1.03
-        const precioFinal = usdt * valorDolar * 1.03;
-        precioTexto = `$ ${precioFinal.toLocaleString('es-AR', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        })}`;
+        precioFinal = (usdt * valorDolar) * 1.03;
+        precioTexto = `$ ${precioFinal.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         precioSpan.textContent = precioTexto;
       } else if (precioSpan) {
         precioSpan.textContent = precioTexto;
       }
 
-      // ================================
-      // 3) Armar link de WhatsApp
-      // ================================
-      const mensaje = buildMensaje(producto, precioTexto);
-      const telefono = '595993373769'; // tu número
-      const waURL = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
+      const precioARS = producto.querySelector('.precio-ars')?.textContent?.trim() || 'Precio no disponible';
+      const mensaje = buildMensaje(producto, precioARS);
+      const telefono = '+595993373769';
+      const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
 
-      if (whatsappBtn) {
-        const disponibilidad = disponibilidadSpan
-          ? disponibilidadSpan.textContent.trim().toLowerCase()
-          : '';
-
-        if (disponibilidad === 'sin stock') {
-          // Sin stock => dejamos el botón visible pero sin link directo
-          whatsappBtn.removeAttribute('href');
-          whatsappBtn.classList.add('disabled');
-          whatsappBtn.setAttribute('aria-disabled', 'true');
-          whatsappBtn.textContent = 'Consultar por WhatsApp';
+      const boton = producto.querySelector('.whatsapp-button');
+      if (boton) {
+        const disponibilidadTexto = producto.querySelector('.disponibilidad')?.textContent?.trim().toLowerCase() || '';
+        if (disponibilidadTexto === 'sin stock') {
+          boton.removeAttribute('href');
+          boton.classList.add('disabled');
+          boton.setAttribute('aria-disabled', 'true');
+          boton.textContent = 'Consultar por WhatsApp';
         } else {
-          whatsappBtn.setAttribute('href', waURL);
-        }
-      }
-
-      // ================================
-      // 4) Pintar disponibilidad en verde / rojo
-      // ================================
-      if (disponibilidadSpan) {
-        const txt = disponibilidadSpan.textContent.trim().toLowerCase();
-        if (txt === 'en stock') {
-          disponibilidadSpan.style.color = 'green';
-          disponibilidadSpan.style.fontWeight = 'bold';
-        } else if (txt === 'sin stock') {
-          disponibilidadSpan.style.color = 'red';
-          disponibilidadSpan.style.fontWeight = 'bold';
+          boton.setAttribute('href', url);
         }
       }
     });
-
-    // ================================
-    // 5) Reordenar cards: stock arriba
-    // ================================
-    const grid = document.querySelector('.products-grid');
-    if (grid) {
-      const cards = Array.from(grid.querySelectorAll('.product'));
-      cards.sort((a, b) => {
-        const aStock = a.querySelector('.disponibilidad')?.textContent?.trim().toLowerCase() === 'en stock' ? 0 : 1;
-        const bStock = b.querySelector('.disponibilidad')?.textContent?.trim().toLowerCase() === 'en stock' ? 0 : 1;
-        return aStock - bStock;
-      });
-      cards.forEach(c => grid.appendChild(c));
-    }
   })
-  .catch(err => {
-    console.error('Error cargando cotización o calculando precios:', err);
-    // fallback visual en caso de error
+  .catch(() => {
     document.querySelectorAll('.precio-ars').forEach(span => {
       span.textContent = 'Error al cargar';
     });
   });
+
+// Marcar disponibilidad con color
+document.querySelectorAll('.product').forEach(producto => {
+  const disponibilidadSpan = producto.querySelector('.disponibilidad');
+  if (disponibilidadSpan) {
+    const texto = disponibilidadSpan.textContent.trim().toLowerCase();
+    if (texto === 'en stock') {
+      disponibilidadSpan.style.color = 'green';
+      disponibilidadSpan.style.fontWeight = 'bold';
+    } else if (texto === 'sin stock') {
+      disponibilidadSpan.style.color = 'red';
+      disponibilidadSpan.style.fontWeight = 'bold';
+    }
+  }
+});
+
+// Reordenar productos: En stock arriba, Sin stock abajo
+(function reordenarPorStock() {
+  const grid = document.querySelector('.products-grid');
+  if (!grid) return;
+  const cards = Array.from(grid.querySelectorAll('.product'));
+  cards.sort((a, b) => {
+    const aEnStock = (a.querySelector('.disponibilidad')?.textContent?.trim().toLowerCase() === 'en stock') ? 0 : 1;
+    const bEnStock = (b.querySelector('.disponibilidad')?.textContent?.trim().toLowerCase() === 'en stock') ? 0 : 1;
+    return aEnStock - bEnStock;
+  });
+  cards.forEach(c => grid.appendChild(c));
+})();
