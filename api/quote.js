@@ -84,7 +84,12 @@ export default async function handler(req, res) {
     const sheets = google.sheets({ version: 'v4', auth });
 
     // Fecha/hora ISO. Esto se guarda en la columna A "Fecha"
-    const now = new Date().toISOString();
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
 
     // Orden de columnas que definiste:
     // A: Fecha
@@ -94,7 +99,7 @@ export default async function handler(req, res) {
     // E: Email
     // F: URL o LINK del producto a cotizar
     const row = [
-      now,
+      formattedDate,
       (nombre || '').toString().trim().toUpperCase(),
       (apellido || '').toString().trim().toUpperCase(),
       (telefono || '').toString().trim(),
