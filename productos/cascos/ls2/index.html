@@ -248,7 +248,7 @@
 
 <script>
 fetch("/api/rate")
-    .then(response => response.text())
+    .then(response => response.json())
     .then(data => {
     const valorDolar = parseFloat(data.trim());
     if (isNaN(valorDolar)) throw new Error("Valor de dólar inválido");
