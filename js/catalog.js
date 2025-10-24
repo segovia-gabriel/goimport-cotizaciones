@@ -97,7 +97,7 @@ function buildMensaje(producto, precioARS) {
 }
 
 // Cotización y armado de links de WhatsApp (con manejo de stock)
-fetch('/api/rate.js')
+fetch('/api/rate')
   .then(response => response.text())
   .then(data => {
     const valorDolar = parseFloat(data.trim());

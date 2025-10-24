@@ -247,7 +247,7 @@
 </div>
 
 <script>
-fetch("/api/rate.js")
+fetch("/api/rate")
     .then(response => response.text())
     .then(data => {
     const valorDolar = parseFloat(data.trim());
