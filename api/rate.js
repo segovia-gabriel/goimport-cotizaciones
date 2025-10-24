@@ -1,23 +1,38 @@
 // /api/rate.js
-// Endpoint serverless para obtener la cotización USDT/ARS desde Binance (precio de venta)
+// Cotización USDT/ARS (fuente: CriptoYa, exchange: ripioexchange)
 
 export default async function handler(req, res) {
   try {
-    // Binance usa el par "USDTARS" para mostrar el precio del USDT en pesos argentinos
-    const response = await fetch('https://api.binance.com/api/v3/ticker/bookTicker?symbol=USDTARS');
+    const response = await fetch('https://criptoya.com/api/usdt/ars', {
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+
+    if (!response.ok) throw new Error('Error al conectar con CriptoYa');
+
     const data = await response.json();
 
-    // Precio de venta (ask)
-    const precioVenta = parseFloat(data.askPrice);
-    if (isNaN(precioVenta)) throw new Error('No se pudo obtener el precio de venta');
+    // Tomamos el exchange específico "ripioexchange"
+    const ripio = data?.ripioexchange;
+    if (!ripio || isNaN(parseFloat(ripio.ask))) {
+      throw new Error('Datos inválidos de RipioExchange');
+    }
 
-    res.status(200).json({
+    const precioVenta = parseFloat(ripio.ask);
+
+    return res.status(200).json({
       ok: true,
       usdt_ars: precioVenta,
-      fuente: 'Binance'
+      fuente: 'CriptoYa (RipioExchange)',
+      actualizado: new Date().toISOString()
     });
   } catch (err) {
-    console.error('Error al obtener cotización Binance:', err);
-    res.status(500).json({ ok: false, error: 'Error al obtener cotización' });
+    console.error('Error obteniendo cotización:', err);
+    const fallback = parseFloat(process.env.USDT_ARS_FALLBACK) || 1400;
+    return res.status(200).json({
+      ok: true,
+      usdt_ars: fallback,
+      fuente: 'Fallback manual',
+      actualizado: new Date().toISOString()
+    });
   }
 }
