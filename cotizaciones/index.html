@@ -171,6 +171,11 @@
       e.preventDefault();
       clearStatus();
 
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
       const payload = {
         origen: document.getElementById('origen').value || 'beacons',
         nombre: document.getElementById('nombre').value.trim(),
