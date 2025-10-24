@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Cotizaciones GoImport</title>
+  <meta name="description" content="Solicitud de cotización GoImport. Envíos y precios actualizados.">
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/png" href="/img/logo_goimport_sintexto.png"/>
+  <!-- ESTILOS EXTERNOS -->
+  <link rel="stylesheet" href="/style/styles.css"/>
+
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <header>
+        <!-- tu logo, subilo como /img/logo.png en el repo -->
+        <img src="/img/logo_goimport_sintexto.png" alt="GoImport Logo">
+        <div style="display:flex; flex-direction:column;">
+          <h1>Solicitar cotización</h1>
+          <small style="color:#777; font-size:.8rem; line-height:1.2;">
+            Te respondemos por WhatsApp. Enviá captura o foto ahí 📸
+          </small>
+        </div>
+      </header>
+
+      <p class="subtitle">
+        Completá tus datos para cotizar un producto. Los precios se calculan en base
+        a la cotización del momento. <span style="color:#d00;font-weight:600;">*</span>
+        indica que es obligatorio.
+      </p>
+
+      <form id="cotizacionForm" novalidate>
+        <input type="hidden" id="origen" name="origen" value="beacons"/>
+
+        <div class="row">
+          <div>
+            <label for="nombre">Nombre <span style="color:#d00;">*</span></label>
+            <input id="nombre" name="nombre" required placeholder="Ej: Gabriel"/>
+          </div>
+          <div>
+            <label for="apellido">Apellido <span style="color:#d00;">*</span></label>
+            <input id="apellido" name="apellido" required placeholder="Ej: Segovia"/>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="telefono">Teléfono (WhatsApp) <span style="color:#d00;">*</span></label>
+            <input id="telefono" name="telefono" required placeholder="Ej: 3755 693621"/>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" placeholder="ejemplo@correo.com"/>
+          </div>
+        </div>
+
+        <div>
+          <label for="linkProducto">URL / link del producto a cotizar <span style="color:#d00;">*</span></label>
+          <input id="linkProducto" name="linkProducto" required placeholder="Pegá el link del producto que viste"/>
+        </div>
+
+        <div class="actions">
+          <button class="btn-primary" id="btnEnviar" type="submit">
+            Enviar cotización
+          </button>
+          <button class="btn-secondary" id="btnLimpiar" type="button">
+            Limpiar
+          </button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <p class="hint">
+          Al confirmar vas a pasar a WhatsApp para continuar la cotización y mandarnos la foto
+          o captura de referencia del producto que querés.
+        </p>
+      </form>
+    </div>
+
+    <footer>
+      <div class="brand">GoImport</div>
+      <div>Tu pedido llega. Te lo cotizamos al mejor precio del momento.</div>
+      <div class="mini" style="margin-top:8px;">
+        © <span id="yearNow"></span> GoImport. Todos los derechos reservados.
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <h2>¡Cotización cargada!</h2>
+      <p>Tu solicitud fue registrada con éxito. Tocá "OK" para continuar por WhatsApp y enviarnos la foto o captura del producto.</p>
+      <button class="modal-ok-btn" id="modalOkBtn">OK</button>
+    </div>
+  </div>
+
+  <script>
+    // ==========================
+    // CONFIGURACIÓN
+    // ==========================
+    const API_URL = 'https://goimportarg.com/api/quote'; // backend en Vercel
+    const API_KEY = 'goimport_2025'; // misma PRIVATE_API_KEY en Vercel
+    const WHATSAPP_NUMBER = '595993373769'; // sin + ni espacios
+
+    // ==========================
+    // ELEMENTOS
+    // ==========================
+    const form = document.getElementById('cotizacionForm');
+    const btnEnviar = document.getElementById('btnEnviar');
+    const btnLimpiar = document.getElementById('btnLimpiar');
+    const statusBox = document.getElementById('status');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalOkBtn = document.getElementById('modalOkBtn');
+    let lastPayloadForWA = null;
+
+    // ==========================
+    // FUNCIONES
+    // ==========================
+    function openModal() { modalOverlay.style.display = 'flex'; }
+    function closeModal() { modalOverlay.style.display = 'none'; }
+
+    function buildWhatsAppMessage(data) {
+      const lineas = [
+        'Hola! Quiero una cotización 🙋‍♂️',
+        '',
+        `Nombre: ${data.nombre} ${data.apellido}`,
+        `Teléfono: ${data.telefono}`,
+        `Email: ${data.email || '-'}`,
+        `Link del producto: ${data.linkProducto}`,
+        '',
+        'Te envío la foto / captura de referencia acá 👇'
+      ];
+      return lineas.join('\n');
+    }
+
+    function goToWhatsApp(data) {
+      const msg = buildWhatsAppMessage(data);
+      const urlWA = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+      window.open(urlWA, '_blank');
+    }
+
+    function clearStatus() {
+      statusBox.textContent = '';
+      statusBox.className = 'status';
+    }
+
+    // footer año dinámico
+    document.getElementById('yearNow').textContent = new Date().getFullYear();
+
+    // ==========================
+    // EVENTOS
+    // ==========================
+    btnLimpiar.addEventListener('click', () => {
+      form.reset();
+      clearStatus();
+    });
+
+    modalOkBtn.addEventListener('click', () => {
+      closeModal();
+      if (lastPayloadForWA) {
+        goToWhatsApp(lastPayloadForWA);
+        form.reset();
+        lastPayloadForWA = null;
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearStatus();
+
+      const payload = {
+        origen: document.getElementById('origen').value || 'beacons',
+        nombre: document.getElementById('nombre').value.trim(),
+        apellido: document.getElementById('apellido').value.trim(),
+        telefono: document.getElementById('telefono').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        linkProducto: document.getElementById('linkProducto').value.trim()
+      };
+
+      if (!payload.nombre || !payload.apellido || !payload.telefono || !payload.linkProducto) {
+        statusBox.textContent = 'Completá los campos obligatorios (*).';
+        statusBox.className = 'status error';
+        return;
+      }
+
+      btnEnviar.disabled = true;
+      btnEnviar.textContent = 'Enviando...';
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type':'application/json',
+            'X-API-Key': API_KEY
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error || 'No se pudo guardar la cotización.');
+        }
+
+        lastPayloadForWA = {
+          nombre: payload.nombre,
+          apellido: payload.apellido,
+          telefono: payload.telefono,
+          email: payload.email,
+          linkProducto: payload.linkProducto
+        };
+
+        statusBox.textContent = 'Cotización guardada correctamente.';
+        statusBox.className = 'status ok';
+        openModal();
+
+      } catch (err) {
+        console.error('Error al enviar cotización:', err);
+        statusBox.textContent = 'Hubo un problema al guardar. Intentalo de nuevo.';
+        statusBox.className = 'status error';
+      } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = 'Enviar cotización';
+      }
+    });
+
+    // tracking origen tipo ?utm=beacons o ?source=instagram
+    const params = new URLSearchParams(location.search);
+    const overrideOrigen = params.get('utm') || params.get('source');
+    if (overrideOrigen) {
+      document.getElementById('origen').value = overrideOrigen;
+    }
+  </script>
+</body>
+</html>
