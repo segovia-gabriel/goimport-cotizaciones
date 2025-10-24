@@ -27,9 +27,8 @@
       </header>
 
       <p class="subtitle">
-        Completá tus datos para cotizar un producto. Los precios se calculan en base
-        a la cotización del momento. <span style="color:#d00;font-weight:600;">*</span>
-        indica que es obligatorio.
+        Completá tus datos para cotizar un producto.
+        Los precios se calculan en base a la cotización del momento.
       </p>
 
       <form id="cotizacionForm" novalidate>
@@ -38,18 +37,18 @@
         <div class="row">
           <div>
             <label for="nombre">Nombre <span style="color:#d00;">*</span></label>
-            <input id="nombre" name="nombre" required placeholder="Ej: Gabriel"/>
+            <input id="nombre" name="nombre" required placeholder="Escribe tu nombre"/>
           </div>
           <div>
             <label for="apellido">Apellido <span style="color:#d00;">*</span></label>
-            <input id="apellido" name="apellido" required placeholder="Ej: Segovia"/>
+            <input id="apellido" name="apellido" required placeholder="Escribe tu apellido"/>
           </div>
         </div>
 
         <div class="row">
           <div>
             <label for="telefono">Teléfono (WhatsApp) <span style="color:#d00;">*</span></label>
-            <input id="telefono" name="telefono" required placeholder="Ej: 3755 693621"/>
+            <input id="telefono" name="telefono" required placeholder="011 2345-6789"/>
           </div>
           <div>
             <label for="email">Email</label>
@@ -58,31 +57,30 @@
         </div>
 
         <div>
-          <label for="linkProducto">URL / link del producto a cotizar <span style="color:#d00;">*</span></label>
+          <label for="linkProducto">URL / Link del producto a cotizar <span style="color:#d00;">*</span></label>
           <input id="linkProducto" name="linkProducto" required placeholder="Pegá el link del producto que viste"/>
         </div>
 
-        <div class="actions">
-          <button class="btn-primary" id="btnEnviar" type="submit">
-            Enviar cotización
-          </button>
-          <button class="btn-secondary" id="btnLimpiar" type="button">
-            Limpiar
-          </button>
+        <div class="actions" style="display:flex; justify-content:center; gap:15px;">
+            <button class="btn-secondary" id="btnLimpiar" type="button">
+                Limpiar
+            </button>
+            <button class="btn-primary" id="btnEnviar" type="submit">
+                Enviar cotización
+            </button>
         </div>
 
         <div id="status" class="status"></div>
 
         <p class="hint">
-          Al confirmar vas a pasar a WhatsApp para continuar la cotización y mandarnos la foto
-          o captura de referencia del producto que querés.
+          Al confirmar vas a pasar a WhatsApp para continuar la cotización y mandanos la foto o captura de referencia del producto que querés.
         </p>
       </form>
     </div>
 
     <footer>
       <div class="brand">GoImport</div>
-      <div>Tu pedido llega. Te lo cotizamos al mejor precio del momento.</div>
+      <div>Tu cotizacion llega. Te lo cotizamos al mejor precio del momento.</div>
       <div class="mini" style="margin-top:8px;">
         © <span id="yearNow"></span> GoImport. Todos los derechos reservados.
       </div>
@@ -93,7 +91,7 @@
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-box">
       <h2>¡Cotización cargada!</h2>
-      <p>Tu solicitud fue registrada con éxito. Tocá "OK" para continuar por WhatsApp y enviarnos la foto o captura del producto.</p>
+      <p>Tu solicitud fue registrada con éxito. Tocá "OK" para continuar por WhatsApp y envianos la foto o captura del producto.</p>
       <button class="modal-ok-btn" id="modalOkBtn">OK</button>
     </div>
   </div>
@@ -125,7 +123,7 @@
 
     function buildWhatsAppMessage(data) {
       const lineas = [
-        'Hola! Quiero una cotización 🙋‍♂️',
+        'Hola GoImport! Ya hice mi solicitud de cotizacion a traves de la web: 🙋‍♂️',
         '',
         `Nombre: ${data.nombre} ${data.apellido}`,
         `Teléfono: ${data.telefono}`,
