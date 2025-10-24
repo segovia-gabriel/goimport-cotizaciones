@@ -18,6 +18,7 @@ document.querySelectorAll('.product').forEach(producto => {
         botonWhatsApp.style.color = '#666';
         botonWhatsApp.style.cursor = 'not-allowed';
         botonWhatsApp.style.pointerEvents = 'none';
+        botonWhatsApp.style.opacity = '0.6';
         botonWhatsApp.textContent = 'Actualmente no disponible';
         }
     }
