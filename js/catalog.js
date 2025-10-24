@@ -1,6 +1,4 @@
-// Script unificado de catálogo: cotización ARS, WhatsApp, estados y ordenamiento
-
-// Helper: obtiene el texto de una especificación por etiqueta (ej: "Marca", "Modelo")
+// Helper: lee un campo de especificaciones por etiqueta ("Marca", "Modelo", etc.)
 function getSpec(producto, etiqueta) {
   const ps = producto.querySelectorAll('.specifications p');
   for (const p of ps) {
@@ -15,88 +13,49 @@ function getSpec(producto, etiqueta) {
   return '';
 }
 
-// Detectar página/categoría por nombre de archivo
+// Detectar nombre de página (para armar mejor el mensaje si querés custom más adelante)
 function getPageName() {
   try {
     const path = (window.location && window.location.pathname) || '';
     const file = path.split('/').pop() || '';
     return file.replace(/\.html?$/i, '').toLowerCase();
-  } catch (_) { return ''; }
-}
-
-// Construir mensaje personalizado por página/categoría
-function buildMensaje(producto, precioARS) {
-  const page = getPageName();
-
-  // Helper local para tomar varios campos en orden de preferencia
-  const pick = (labels) => labels.map(l => getSpec(producto, l)).filter(Boolean).join(' ');
-
-  // Templating por categoría
-  const helmetsFields = ['Marca', 'Modelo', 'Grafico', 'Talles'];
-  const phoneFields = ['Marca', 'Modelo', 'Capacidad', 'Memoria', 'Color'];
-
-  let base = '';
-  switch (page) {
-    case 'smartphones_samsung':
-    case 'smartphones_xiaomi':
-    case 'smartphones_motorola':
-    case 'iphonesellados':
-    case 'iphoneswap':
-      base = pick(phoneFields) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'macbook':
-      base = pick(['Marca','Modelo','Capacidad','Memoria','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'notebooks':
-      base = pick(['Marca','Modelo','Procesador','Memoria','Almacenamiento','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'ipads':
-    case 'tablets':
-      base = pick(['Marca','Modelo','Capacidad','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'smartv':
-      base = pick(['Marca','Modelo','Pantalla','Tamaño','Pulgadas','Resolución']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'applewatch':
-    case 'smartwatch_xiaomi':
-      base = pick(['Marca','Modelo','Tamaño','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'scooter_xiaomi':
-      base = pick(['Marca','Modelo','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'gopro':
-      base = `GoPro ${getSpec(producto,'Modelo') || (producto.querySelector('h2')?.textContent?.trim() || '')}`.trim();
-      break;
-    case 'insta360':
-      base = `Insta360 ${getSpec(producto,'Modelo') || (producto.querySelector('h2')?.textContent?.trim() || '')}`.trim();
-      break;
-    case 'dji':
-      base = `DJI ${getSpec(producto,'Modelo') || (producto.querySelector('h2')?.textContent?.trim() || '')}`.trim();
-      break;
-    case 'xbox':
-    case 'sonyplaystation':
-      base = producto.querySelector('h2')?.textContent?.trim() || pick(['Producto','Marca','Modelo']);
-      break;
-    case 'parlantesjbl':
-      base = pick(['Marca','Modelo','Color','Potencia']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'agv':
-    case 'shaft':
-    case 'hro':
-    case 'protork':
-      base = pick(helmetsFields) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    case 'aspiradora_xiaomi':
-      base = pick(['Marca','Modelo','Color']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
-      break;
-    default:
-      base = pick(['Marca','Modelo']) || (producto.querySelector('h2')?.textContent?.trim() || 'Producto');
+  } catch (_) {
+    return '';
   }
-
-  return `Hola! Estoy interesado en este producto que vi en su web: ${base} ${precioARS}. ¿Está disponible?`;
 }
 
-// Cotización y armado de links de WhatsApp (con manejo de stock)
+// Arma el mensaje de WhatsApp con info del producto + precio ARS final
+function buildMensaje(producto, precioARS) {
+  const titulo = producto.querySelector('h2')?.textContent?.trim() || 'Producto';
+  const marca = getSpec(producto, 'Marca');
+  const modelo = getSpec(producto, 'Modelo');
+  const color = getSpec(producto, 'Color');
+  const talles = getSpec(producto, 'Talles');
+
+  // Ejemplo de mensaje:
+  // "Hola! Estoy interesado en este producto que vi en su web:
+  // Pro Tork Coyote / Marca: Pro Tork / Modelo: Coyote / Color: Gris / Talles: S, M, L
+  // Precio aprox: $ 123.456,78 ARS
+  // ¿Está disponible?"
+  let lineas = [
+    'Hola! Estoy interesado en este producto que vi en su web:',
+    `${titulo}`,
+  ];
+
+  if (marca) lineas.push(`Marca: ${marca}`);
+  if (modelo) lineas.push(`Modelo: ${modelo}`);
+  if (color) lineas.push(`Color: ${color}`);
+  if (talles) lineas.push(`Talles: ${talles}`);
+
+  lineas.push(`Precio aprox: ${precioARS}`);
+  lineas.push('¿Está disponible?');
+
+  return lineas.join('\n');
+}
+
+// ================================
+// 1) Traer cotización USDT→ARS desde tu backend /api/rate
+// ================================
 fetch('/api/rate')
   .then(res => res.json())
   .then(data => {
