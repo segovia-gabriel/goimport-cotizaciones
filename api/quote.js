@@ -4,8 +4,8 @@
 import { google } from 'googleapis';
 
 const ALLOWED_ORIGINS = [
-  'https://<TU-USER>.github.io',
-  'https://<TU-USER>.github.io/<TU-REPO>'
+  'https://segovia-gabriel.github.io',
+  'https://segovia-gabriel.github.io/goimport-cotizaciones'
 ];
 
 // Convierte "\n" en saltos reales si Vercel guarda la clave privada escapeada
