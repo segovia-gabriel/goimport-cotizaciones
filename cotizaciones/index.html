@@ -37,28 +37,28 @@
         <div class="row">
           <div>
             <label for="nombre">Nombre <span style="color:#d00;">*</span></label>
-            <input id="nombre" name="nombre" required placeholder="Escribe tu nombre"/>
+            <input id="nombre" name="nombre" required  maxlength="30" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+" title="Solo letras, sin números ni símbolos" placeholder="Escribe tu nombre"/>
           </div>
           <div>
             <label for="apellido">Apellido <span style="color:#d00;">*</span></label>
-            <input id="apellido" name="apellido" required placeholder="Escribe tu apellido"/>
+            <input id="apellido" name="apellido" required maxlength="35" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+" title="Solo letras, sin números ni símbolos" placeholder="Escribe tu apellido"/>
           </div>
         </div>
 
         <div class="row">
           <div>
             <label for="telefono">Teléfono (WhatsApp) <span style="color:#d00;">*</span></label>
-            <input id="telefono" name="telefono" required placeholder="011 2345-6789"/>
+            <input id="telefono" name="telefono" required pattern="^[0-9]{8,15}$" title="Solo números, entre 8 y 15 dígitos" placeholder="011 2345-6789"/>
           </div>
           <div>
             <label for="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="ejemplo@correo.com"/>
+            <input id="email" name="email" type="email" title="Ingrese un correo electrónico válido" placeholder="ejemplo@correo.com"/>
           </div>
         </div>
 
         <div>
           <label for="linkProducto">URL / Link del producto a cotizar <span style="color:#d00;">*</span></label>
-          <input id="linkProducto" name="linkProducto" required placeholder="Pegá el link del producto que viste"/>
+          <input id="linkProducto" name="linkProducto" required type="url" title="Ingrese una URL válida (ejemplo: https://...)" placeholder="Pegá el link del producto que viste"/>
         </div>
 
         <div class="actions" style="display:flex; justify-content:center; gap:15px;">
