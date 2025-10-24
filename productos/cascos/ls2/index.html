@@ -247,7 +247,7 @@
 </div>
 
 <script>
-fetch("dolar.txt")
+fetch("/dolar.txt")
     .then(response => response.text())
     .then(data => {
     const valorDolar = parseFloat(data.trim());
