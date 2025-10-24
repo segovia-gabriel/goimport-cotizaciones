@@ -18,7 +18,7 @@ document.querySelectorAll('.product').forEach(producto => {
         botonWhatsApp.style.color = '#666';
         botonWhatsApp.style.cursor = 'not-allowed';
         botonWhatsApp.style.pointerEvents = 'none';
-        botonWhatsApp.textContent = 'Sin stock';
+        botonWhatsApp.textContent = 'Actualmente no disponible';
         }
     }
     });
