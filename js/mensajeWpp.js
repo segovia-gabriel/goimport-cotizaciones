@@ -1,58 +1,68 @@
+setTimeout(() => {
+console.log('[GoImport] mensajeWpp.js cargó');
+
+    function getSpec(producto, etiqueta) {
+    const ps = producto.querySelectorAll('.specifications p');
+    for (const p of ps) {
+        const strong = p.querySelector('strong');
+        if (!strong) continue;
+        const key = strong.textContent.replace(':', '').trim().toLowerCase();
+        if (key === etiqueta.toLowerCase()) {
+        const value = p.textContent.split(':').slice(1).join(':').trim();
+        return value || '';
+        }
+    }
+    return '';
+    }
+
     document.querySelectorAll('.product').forEach(producto => {
     const boton = producto.querySelector('.whatsapp-button');
+    if (!boton) return;
+
     const disponibilidadSpan = producto.querySelector('.disponibilidad');
-    const disponibilidad = disponibilidadSpan
+    const disponibilidadTexto = disponibilidadSpan
         ? disponibilidadSpan.textContent.trim().toLowerCase()
         : '';
 
-    if (!boton) return;
-    if (disponibilidad === 'sin stock') return;
+    // si está sin stock no le doy link de compra directo
+    if (disponibilidadTexto === 'sin stock') return;
 
+    // título principal del producto
     const titulo = producto.querySelector('h2')?.textContent?.trim() || 'Producto';
 
-    // Extraemos las specs visibles (Marca, Modelo, Color, Talles, Disponibilidad, etc.)
-    const specs = producto.querySelectorAll('.specifications p');
-    const detalles = [];
-    specs.forEach(p => {
-        const txt = p.textContent.trim();
-        if (!txt) return;
-        // Filtramos líneas que son "Precio:" porque las vamos a armar nosotros
-        if (txt.toLowerCase().startsWith('precio:')) return;
-        if (txt.toLowerCase().startsWith('precio en pesos:')) return;
-        detalles.push(txt);
-    });
+    // leemos los campos más comunes
+    const marca = getSpec(producto, 'Marca');
+    const modelo = getSpec(producto, 'Modelo');
+    const color = getSpec(producto, 'Color');
+    const talles = getSpec(producto, 'Talles');
+    const disponibilidadLegible = disponibilidadSpan
+        ? disponibilidadSpan.textContent.trim()
+        : '';
 
-    // Obtenemos precio en USDT desde el atributo data-usdt
+    // precio en usdt viene desde el atributo de la card
     const usdtStr = producto.getAttribute('data-usdt') || '-';
-    const usdtValue = parseFloat(usdtStr);
 
-    // Obtenemos la cotización actual guardada por precio_usdt_ars.js
-    const cotizacion = parseFloat(window.COTIZACION_USDT_ARS);
+    // precio en pesos YA CALCULADO Y MOSTRADO EN PANTALLA
+    // (esto es exactamente lo que hacía tu script viejo: toma el texto final)
+    const precioPesos = producto.querySelector('.precio-ars')?.textContent?.trim() || 'Precio no disponible';
 
-    // Calculamos el precio final en pesos ARS (si tenemos todo)
-    let precioPesosTexto = 'Precio no disponible';
-    if (!isNaN(usdtValue) && !isNaN(cotizacion)) {
-        const precioFinal = usdtValue * cotizacion * 1.03;
-        precioPesosTexto = `$ ${precioFinal.toLocaleString('es-AR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-        })}`;
-    } else {
-        // fallback: usamos lo que esté en el DOM por si ya se cargó
-        const fallbackDom = producto.querySelector('.precio-ars')?.textContent?.trim();
-        if (fallbackDom) {
-        precioPesosTexto = fallbackDom;
-        }
-    }
+    // armamos todas las líneas de detalle del producto, al estilo que tenías
+    const lineasDetalles = [];
+    if (marca) lineasDetalles.push(`Marca: ${marca}`);
+    if (modelo) lineasDetalles.push(`Modelo: ${modelo}`);
+    if (color) lineasDetalles.push(`Color: ${color}`);
+    if (talles) lineasDetalles.push(`Talles: ${talles}`);
+    if (disponibilidadLegible) lineasDetalles.push(`Disponibilidad: ${disponibilidadLegible}`);
 
+    // mensaje final para WhatsApp
     const mensaje =
     `Hola GoImport!
 
     Estoy interesado en este producto que vi en su web:
     ${titulo}
-    ${detalles.join('\n')}
+    ${lineasDetalles.join('\n')}
 
-    Precio: ${usdtStr} USDT (${precioPesosTexto})
+    Precio: ${usdtStr} USDT (${precioPesos})
 
     ¿Podrían confirmarme si está disponible?
     Gracias!`;
@@ -61,4 +71,6 @@
     const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
 
     boton.setAttribute('href', url);
+    console.log('[GoImport] WhatsApp href seteado:', url);
     });
+}, 200);
