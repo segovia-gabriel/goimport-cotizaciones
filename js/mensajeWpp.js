@@ -1,7 +1,7 @@
-setTimeout(() => {
     console.log('[GoImport] mensajeWpp.js cargó');
 
-    document.querySelectorAll('.product').forEach(producto => {
+    // Función que procesa UNA card de producto
+    function procesarProducto(producto) {
     const boton = producto.querySelector('.whatsapp-button');
     if (!boton) return;
 
@@ -13,10 +13,17 @@ setTimeout(() => {
     // si no hay stock, no generamos link
     if (disponibilidadTexto.toLowerCase() === 'sin stock') return;
 
+    // leemos el precio en pesos que ya calculó precio_usdt_ars.js
+    const precioPesos = producto.querySelector('.precio-ars')?.textContent?.trim() || '';
+    if (!precioPesos || precioPesos.toLowerCase().includes('cargando')) {
+        // todavía no está listo el precio para este producto, no seteamos link todavía
+        return;
+    }
+
     // título del producto
     const tituloProducto = producto.querySelector('h2')?.textContent?.trim() || 'Producto';
 
-    // recorremos las especificaciones visibles en la card
+    // specs visibles
     const specs = producto.querySelectorAll('.specifications p');
     const detalles = [];
     specs.forEach(p => {
@@ -24,19 +31,17 @@ setTimeout(() => {
         if (!linea) return;
 
         const lower = linea.toLowerCase();
-        // no metemos líneas de precio en las specs
+        // evitamos repetir info de precio
         if (lower.startsWith('precio:')) return;
         if (lower.startsWith('precio en pesos:')) return;
 
         detalles.push(linea);
     });
 
-    // precios
+    // precio en USDT (atributo del producto)
     const usdtStr = producto.getAttribute('data-usdt') || '-';
-    const precioPesos = producto.querySelector('.precio-ars')?.textContent?.trim() || 'Precio no disponible';
 
-    // armamos el mensaje en formato prolijo
-    // importante: sin emojis raros
+    // mensaje final SIN espacios raros delante
     const mensaje =
     `Hola GoImport!
 
@@ -54,5 +59,26 @@ setTimeout(() => {
 
     boton.setAttribute('href', url);
     console.log('[GoImport] WhatsApp href seteado:', url);
-    });
-}, 200);
+    }
+
+    // Intentamos varias veces hasta que todos los productos tengan precio listo
+    function inicializarLinksWhatsAppConRetry(intentosRestantes = 10) {
+    document.querySelectorAll('.product').forEach(procesarProducto);
+
+    if (intentosRestantes > 0) {
+        // chequeamos si todavía hay algún producto con precio "Cargando..."
+        const quedanCargando = Array.from(document.querySelectorAll('.product')).some(prod => {
+        const precio = prod.querySelector('.precio-ars')?.textContent?.trim().toLowerCase() || '';
+        return precio.includes('cargando');
+        });
+
+        if (quedanCargando) {
+        setTimeout(() => {
+            inicializarLinksWhatsAppConRetry(intentosRestantes - 1);
+        }, 200);
+        }
+    }
+    }
+
+// arrancamos
+inicializarLinksWhatsAppConRetry();
