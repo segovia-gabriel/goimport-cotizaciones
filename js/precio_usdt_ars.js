@@ -9,6 +9,7 @@ fetch('/api/rate')
     console.log('[GoImport] /api/rate body:', data);
 
     if (!data || !data.ok) throw new Error('La API devolvió ok = false');
+    window.COTIZACION_USDT_ARS = valorDolar;
 
     const valorDolar = parseFloat(data.usdt_ars);
     console.log('[GoImport] valorDolar:', valorDolar);
